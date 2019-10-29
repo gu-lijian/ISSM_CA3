@@ -34,8 +34,12 @@ SECONDS_PER_DAY = 3600 * 24
 Path_to_file = 'D:\GoogleDrive\MTech\Courses\ISY5002 Pattern Recognition Systems\Intelligent Sensing & Sense Making\CA3\sleep_classifiers-master\data\\'
 Path_to_clearned_file = 'D:\GoogleDrive\MTech\Courses\ISY5002 Pattern Recognition Systems\Intelligent Sensing & Sense Making\CA3\sleep_classifiers-master\cleaneddata\\'
 
+# Load data from Excel
+# from google.colab import drive
+# drive.mount('/content/data')
+
 def get_all_subject_ids():
-    subjects_as_ints = [1360686, 1066528]
+    subjects_as_ints = [1360686]
 
     '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
                         1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
@@ -54,7 +58,7 @@ def load_data(subject_id):
     # Load data from csv
     psg_output_path = Path_to_clearned_file + subject_id + '_cleaned_psg.csv'
     hr_output_path = Path_to_clearned_file + subject_id + '_cleaned_heartrate.csv'
-    counts_output_path = Path_to_clearned_file + subject_id + '_cleaned_counts.csv'
+    counts_output_path = Path_to_clearned_file + subject_id + '_cleaned_counts.txt'
     motion_output_path = Path_to_clearned_file + subject_id + '_cleaned_motion.csv'
 
     psg = pd.read_csv(psg_output_path, header=None)
@@ -139,12 +143,12 @@ def run_modeling(subject_set):
     start = time.time()
 
     waveletname = 'db4'
-    uci_har_signals_train, uci_har_labels_train = randomize(train_signals, np.array(train_labels))
-    uci_har_signals_test, uci_har_labels_test = randomize(test_signals, np.array(test_labels))
+    # uci_har_signals_train, uci_har_labels_train = randomize(train_signals, np.array(train_labels))
+    # uci_har_signals_test, uci_har_labels_test = randomize(test_signals, np.array(test_labels))
     print('Generate features for training data')
-    X_train, Y_train = get_uci_har_features(uci_har_signals_train, uci_har_labels_train, waveletname)
+    # X_train, Y_train = get_uci_har_features(uci_har_signals_train, uci_har_labels_train, waveletname)
     print('Generate features for training data')
-    X_test, Y_test = get_uci_har_features(uci_har_signals_test, uci_har_labels_test, waveletname)
+    # X_test, Y_test = get_uci_har_features(uci_har_signals_test, uci_har_labels_test, waveletname)
 
     end = time.time()
     print('Time needed: %.2f seconds' % (end - start))
@@ -155,13 +159,13 @@ def run_modeling(subject_set):
     # Perform classification
     # use the default setting of MLPClassifier
     clf = MLPClassifier()
-    clf.fit(X_train, Y_train)
-    test_score = clf.score(X_test, Y_test)
+    # clf.fit(X_train, Y_train)
+    # test_score = clf.score(X_test, Y_test)
 
-    print('Classification accuracy for test data set: %.4f' % test_score)
+    # print('Classification accuracy for test data set: %.4f' % test_score)
 
-    Y_predict = clf.predict(X_test)
-    print(pd.DataFrame(confusion_matrix(Y_test, Y_predict), index=activity_label, columns=activity_label))
+    # Y_predict = clf.predict(X_test)
+    # print(pd.DataFrame(confusion_matrix(Y_test, Y_predict), index=activity_label, columns=activity_label))
 
 # Start to run here
 subject_ids = get_all_subject_ids()
