@@ -1,0 +1,13 @@
+https://www.overleaf.com/7796238849wxhtnqrykqsm
+
+GPS trajectory, traffic datasets: http://www.cs.colostate.edu/~skmishra/research.html
+Wearable sensor: http://www.utdallas.edu/~kehtar/UTD-MHAD.html
+Human gait dataset: http://islab.hh.se/mediawiki/Gait_database
+Anomaly detection dataset: http://odds.cs.stonybrook.edu/
+
+https://physionet.org/content/sleep-accel/1.0.0/#files
+http://www.github.com/ojwalch/sleep_classifiers/
+https://github.com/ojwalch/sleep_accel
+https://doi.org/10.1093/sleep/zsz180
+
+https://colab.research.google.com/drive/1yiYoWA1sOAuClB_WKXB4QwbQwWdww8oT
