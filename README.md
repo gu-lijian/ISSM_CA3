@@ -6,5 +6,6 @@ Run steps
 2. Run ca3model.py to do training process and generate outcome
 
 Data Location
-original data: /data
+
+original data: /data.
 intermedia data: /cleaneddata
