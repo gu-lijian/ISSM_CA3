@@ -38,21 +38,29 @@ Path_to_clearned_file = 'D:\GoogleDrive\MTech\Courses\ISY5002 Pattern Recognitio
 # from google.colab import drive
 # drive.mount('/content/data')
 
-def get_all_subject_ids():
-    subjects_as_ints = [1360686]
-
+def get_all_train_subject_ids():
+    train_subjects_as_ints = [1360686]
     '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
                         1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
                         8173033, 7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
                         8692923] '''
+    train_subjects_as_strings = []
 
-    subjects_as_strings = []
+    for subject in train_subjects_as_ints:
+        train_subjects_as_strings.append(str(subject))
+    return train_subjects_as_strings
 
-    for subject in subjects_as_ints:
-        subjects_as_strings.append(str(subject))
-    return subjects_as_strings
+def get_all_test_subject_ids():
+    test_subjects_as_ints = [1360686]
+    '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
+                        1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
+                        8173033, 7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
+                        8692923] '''
+    test_subjects_as_strings = []
 
-    print(subjects_as_strings)
+    for subject in test_subjects_as_ints:
+        test_subjects_as_strings.append(str(subject))
+    return test_subjects_as_strings
 
 def load_data(subject_id):
     # Load data from csv
@@ -126,11 +134,56 @@ def decompose_wave(orig_singal, signal_name):
     plt.legend()
     plt.show()
 
+def read_signals(filename):
+    with open(filename, 'r') as fp:
+        data = fp.read().splitlines()
+        data = map(lambda x: x.rstrip().lstrip().split(), data)
+        data = [list(map(float, line)) for line in data]
+        # print(data[0:50])
+    return data
+
+def read_labels(filename):
+    with open(filename, 'r') as fp:
+        activities = fp.read().splitlines()
+        activities = list(map(int, activities))
+        # print(activities[0:50])
+    return activities
+
 def randomize(dataset, labels):
     permutation = np.random.permutation(labels.shape[0])
     shuffled_dataset = dataset[permutation, :, :]
     shuffled_labels = labels[permutation]
     return shuffled_dataset, shuffled_labels
+
+# Define the feature extraction method for each subband
+def calculate_statistics(list_values):
+    mean = np.nanmean(list_values)
+    std = np.nanstd(list_values)
+    var = np.nanvar(list_values)
+    return [mean, std, var]
+
+# Define feature extraction methods
+def get_features(list_values):
+    statistics = calculate_statistics(list_values)
+    return statistics
+
+def get_sleeping_features(dataset, labels, waveletname):
+    sleeping_features = []
+    for signal_no in range(0, len(dataset)):
+
+        if ((signal_no % 500) == 0):
+            print('get_sleeping_features, loop %d/%d' % (signal_no, len(dataset)))
+        features = []
+        for signal_comp in range(0, dataset.shape[2]):
+            signal = dataset[signal_no, :, signal_comp]
+            list_coeff = pywt.wavedec(signal, waveletname)
+            for coeff in list_coeff:
+                features += get_features(coeff)
+        sleeping_features.append(features)
+    X = np.array(sleeping_features)
+    Y = np.array(labels)
+    return X, Y
+
 
 def run_modeling(subject_set):
     start_time = time.time()
@@ -139,16 +192,30 @@ def run_modeling(subject_set):
         print("Load cleaned data from subject " + str(subject) + "...")
         load_data(str(subject))
 
+    LABELFILE_TRAIN = Path_to_clearned_file + subject + '_cleaned_psg.csv'
+    LABELFILE_TEST = Path_to_clearned_file + subject + '_cleaned_psg.csv'
+
+    train_signals, test_signals = [], []
+
+    for subject in subject_set:
+        signal = read_signals(Path_to_clearned_file + subject)
+        train_signals.append(signal)
+    train_signals = np.transpose(np.array(train_signals), (1, 2, 0))
+
+    for input_file in INPUT_FILES_TEST:
+        signal = read_signals(Path_to_clearned_file + input_file)
+        test_signals.append(signal)
+    test_signals = np.transpose(np.array(test_signals), (1, 2, 0))
+
+
     # Extract features for both train and test signals
     start = time.time()
 
     waveletname = 'db4'
-    # uci_har_signals_train, uci_har_labels_train = randomize(train_signals, np.array(train_labels))
-    # uci_har_signals_test, uci_har_labels_test = randomize(test_signals, np.array(test_labels))
     print('Generate features for training data')
-    # X_train, Y_train = get_uci_har_features(uci_har_signals_train, uci_har_labels_train, waveletname)
+    X_train, Y_train = get_sleeping_features(train_signals, np.array(train_labels), waveletname)
     print('Generate features for training data')
-    # X_test, Y_test = get_uci_har_features(uci_har_signals_test, uci_har_labels_test, waveletname)
+    X_test, Y_test = get_sleeping_features(test_signals, np.array(test_labels), waveletname)
 
     end = time.time()
     print('Time needed: %.2f seconds' % (end - start))
@@ -159,13 +226,13 @@ def run_modeling(subject_set):
     # Perform classification
     # use the default setting of MLPClassifier
     clf = MLPClassifier()
-    # clf.fit(X_train, Y_train)
-    # test_score = clf.score(X_test, Y_test)
+    clf.fit(X_train, Y_train)
+    test_score = clf.score(X_test, Y_test)
 
-    # print('Classification accuracy for test data set: %.4f' % test_score)
+    print('Classification accuracy for test data set: %.4f' % test_score)
 
-    # Y_predict = clf.predict(X_test)
-    # print(pd.DataFrame(confusion_matrix(Y_test, Y_predict), index=activity_label, columns=activity_label))
+    Y_predict = clf.predict(X_test)
+    print(pd.DataFrame(confusion_matrix(Y_test, Y_predict), index=activity_label, columns=activity_label))
 
 # Start to run here
 subject_ids = get_all_subject_ids()
