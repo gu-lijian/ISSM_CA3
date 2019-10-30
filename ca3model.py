@@ -38,8 +38,20 @@ Path_to_clearned_file = 'D:\GoogleDrive\MTech\Courses\ISY5002 Pattern Recognitio
 # from google.colab import drive
 # drive.mount('/content/data')
 
+# def get_all_subject_ids():
+#     train_subjects_as_ints = [1360686]
+#     '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
+#                         1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
+#                         8173033, 7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
+#                         8692923] '''
+#     subjects_as_strings = []
+#
+#     for subject in train_subjects_as_ints:
+#         subjects_as_strings.append(str(subject))
+#     return subjects_as_strings
+
 def get_all_train_subject_ids():
-    train_subjects_as_ints = [1360686]
+    train_subjects_as_ints = [1066528]
     '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
                         1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
                         8173033, 7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
@@ -134,27 +146,6 @@ def decompose_wave(orig_singal, signal_name):
     plt.legend()
     plt.show()
 
-def read_signals(filename):
-    with open(filename, 'r') as fp:
-        data = fp.read().splitlines()
-        data = map(lambda x: x.rstrip().lstrip().split(), data)
-        data = [list(map(float, line)) for line in data]
-        # print(data[0:50])
-    return data
-
-def read_labels(filename):
-    with open(filename, 'r') as fp:
-        activities = fp.read().splitlines()
-        activities = list(map(int, activities))
-        # print(activities[0:50])
-    return activities
-
-def randomize(dataset, labels):
-    permutation = np.random.permutation(labels.shape[0])
-    shuffled_dataset = dataset[permutation, :, :]
-    shuffled_labels = labels[permutation]
-    return shuffled_dataset, shuffled_labels
-
 # Define the feature extraction method for each subband
 def calculate_statistics(list_values):
     mean = np.nanmean(list_values)
@@ -174,48 +165,75 @@ def get_sleeping_features(dataset, labels, waveletname):
         if ((signal_no % 500) == 0):
             print('get_sleeping_features, loop %d/%d' % (signal_no, len(dataset)))
         features = []
-        for signal_comp in range(0, dataset.shape[2]):
-            signal = dataset[signal_no, :, signal_comp]
-            list_coeff = pywt.wavedec(signal, waveletname)
-            for coeff in list_coeff:
-                features += get_features(coeff)
+        # for signal_comp in range(0, len(dataset[signal_no])):
+        signal = dataset[signal_no]
+        list_coeff = pywt.wavedec(signal, waveletname)
+        for coeff in list_coeff:
+            features += get_features(coeff)
         sleeping_features.append(features)
     X = np.array(sleeping_features)
     Y = np.array(labels)
     return X, Y
 
+def load_label(subject_id):
+    # Load label from psg csv
+    psg_output_path = Path_to_clearned_file + subject_id + '_cleaned_psg.csv'
+    psg = pd.read_csv(psg_output_path, header=None)
+    label_psg = psg[1].values
+    return label_psg
 
-def run_modeling(subject_set):
+def load_normalize_signal(subject_id, label):
+    # Load label from heart rate csv
+    hr_output_path = Path_to_clearned_file + subject_id + '_cleaned_heartrate.csv'
+    counts_output_path = Path_to_clearned_file + subject_id + '_cleaned_counts.txt'
+    motion_output_path = Path_to_clearned_file + subject_id + '_cleaned_motion.csv'
+    hr = pd.read_csv(hr_output_path, header=None)
+    counts = pd.read_csv(counts_output_path, header=None)
+    motion = pd.read_csv(motion_output_path, header=None)
+    signal_hr = hr[1].values
+    signal_counts = counts[1].values
+    signal_motion_x = motion[1].values
+    signal_motion_y = motion[2].values
+    signal_motion_z = motion[3].values
+    if len(signal_hr) > len(label):
+        hr_multiple = len(signal_hr) / len(label)
+        counts_multiple = len(signal_counts) / len(label)
+        motion_multiple = len(signal_motion_x) / len(label)
+        normalized_signal = [];
+        for index in range(0, len(label)) :
+            signals_arr = [];
+            signals_arr.append(signal_hr[int(index * hr_multiple)])
+            signals_arr.append(signal_counts[int(index * counts_multiple)])
+            signals_arr.append(signal_motion_x[int(index * motion_multiple)])
+            signals_arr.append(signal_motion_y[int(index * motion_multiple)])
+            signals_arr.append(signal_motion_z[int(index * motion_multiple)])
+            normalized_signal.append(signals_arr);
+
+    return normalized_signal
+
+def run_modeling(train_subject_set, test_subject_set):
     start_time = time.time()
 
-    for subject in subject_set:
-        print("Load cleaned data from subject " + str(subject) + "...")
-        load_data(str(subject))
+    for train_subject in train_subject_set:
+        print("Load cleaned training data from subject " + str(train_subject) + "...")
+        # load_data(str(train_subject))
+        train_label = load_label(str(train_subject))
+        train_signal = load_normalize_signal(str(train_subject), train_label)
 
-    LABELFILE_TRAIN = Path_to_clearned_file + subject + '_cleaned_psg.csv'
-    LABELFILE_TEST = Path_to_clearned_file + subject + '_cleaned_psg.csv'
-
-    train_signals, test_signals = [], []
-
-    for subject in subject_set:
-        signal = read_signals(Path_to_clearned_file + subject)
-        train_signals.append(signal)
-    train_signals = np.transpose(np.array(train_signals), (1, 2, 0))
-
-    for input_file in INPUT_FILES_TEST:
-        signal = read_signals(Path_to_clearned_file + input_file)
-        test_signals.append(signal)
-    test_signals = np.transpose(np.array(test_signals), (1, 2, 0))
-
+    for test_subject in test_subject_set:
+        print("Load cleaned testing data from subject " + str(test_subject) + "...")
+        # load_data(str(test_subject))
+        test_label = load_label(str(test_subject))
+        test_signal = load_normalize_signal(str(train_subject), test_label)
 
     # Extract features for both train and test signals
     start = time.time()
 
     waveletname = 'db4'
     print('Generate features for training data')
-    X_train, Y_train = get_sleeping_features(train_signals, np.array(train_labels), waveletname)
-    print('Generate features for training data')
-    X_test, Y_test = get_sleeping_features(test_signals, np.array(test_labels), waveletname)
+    X_train, Y_train = get_sleeping_features(train_signal, np.array(train_label), waveletname)
+    print('Generate features for testing data')
+    X_test, Y_test = get_sleeping_features(test_signal, np.array(test_label), waveletname)
 
     end = time.time()
     print('Time needed: %.2f seconds' % (end - start))
@@ -230,10 +248,12 @@ def run_modeling(subject_set):
     test_score = clf.score(X_test, Y_test)
 
     print('Classification accuracy for test data set: %.4f' % test_score)
+    stage_label = ['WAKE', 'N1', 'N2', 'N3', 'N4', 'REM']
 
     Y_predict = clf.predict(X_test)
-    print(pd.DataFrame(confusion_matrix(Y_test, Y_predict), index=activity_label, columns=activity_label))
+    print(pd.DataFrame(confusion_matrix(Y_test, Y_predict), index=stage_label, columns=stage_label))
 
 # Start to run here
-subject_ids = get_all_subject_ids()
-run_modeling(subject_ids)
+train_subject_ids = get_all_train_subject_ids()
+test_subject_ids = get_all_test_subject_ids()
+run_modeling(train_subject_ids, test_subject_ids)

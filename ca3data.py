@@ -36,7 +36,7 @@ Path_to_file = 'D:\GoogleDrive\MTech\Courses\ISY5002 Pattern Recognition Systems
 Path_to_clearned_file = 'D:\GoogleDrive\MTech\Courses\ISY5002 Pattern Recognition Systems\Intelligent Sensing & Sense Making\CA3\sleep_classifiers-master\cleaneddata\\'
 
 def get_all_subject_ids():
-        subjects_as_ints = [1360686]
+        subjects_as_ints = [1066528, 1360686]
 
         '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
                             1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
