@@ -21,6 +21,7 @@ from warnings import filterwarnings # Avoid training warning message in MLPClass
 filterwarnings('ignore')
 import time
 import csv
+import os
 from enum import Enum
 from scipy.signal import butter, filtfilt
 
@@ -648,6 +649,11 @@ def feature_build(subject_id):
         build_from_wearables(subject_id, valid_epochs)
         build_from_time(subject_id, valid_epochs)
 
+def delete_medium_file(subject_id):
+    os.remove(Path_to_clearned_file + subject_id + '_cleaned_motion.txt')
+    os.remove(Path_to_clearned_file + subject_id + '_cleaned_heartrate.txt')
+    os.remove(Path_to_clearned_file + subject_id + '_cleaned_psg.txt')
+
 def run_preprocessing(subject_set):
     start_time = time.time()
 
@@ -661,7 +667,8 @@ def run_preprocessing(subject_set):
 
     for subject in subject_set:
         feature_build(str(subject))
-
+    for subject in subject_set:
+        delete_medium_file(str(subject))
     end_time = time.time()
     print("Execution took " + str((end_time - start_time) / 60) + " minutes")
 
