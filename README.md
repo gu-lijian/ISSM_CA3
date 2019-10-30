@@ -1,21 +1,10 @@
 # sleep_classifiers
 
-This code uses scikit-learn to classify sleep based on acceleration and photoplethymography-derived heart rate from the Apple Watch. 
+Run steps
 
-## Getting Started
+1. Run ca3data.py to generate intermedia data.
+2. Run ca3model.py to do training process and generate outcome
 
-This code uses Python 3.7.
-
-## Data
-
-Will be put on PhysioNet when the paper is published.
-
-## Features + figures
-
-All raw data are cleaned and features are generated in ```preprocessing_runner.py.```
-
-The file ```analysis_runner.py``` can be used to generate figures showing classifier performance. 
-
-## License
-
-This software is open source and under an MIT license.
+Data Location
+original data: /data
+intermedia data: /cleaneddata
