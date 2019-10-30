@@ -8,5 +8,4 @@ Run steps
 Data Location
 
 original data: /data
-
 intermedia data: /cleaneddata
