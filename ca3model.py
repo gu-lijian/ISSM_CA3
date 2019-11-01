@@ -38,20 +38,8 @@ Path_to_clearned_file = 'D:\GoogleDrive\MTech\Courses\ISY5002 Pattern Recognitio
 # from google.colab import drive
 # drive.mount('/content/data')
 
-# def get_all_subject_ids():
-#     train_subjects_as_ints = [1360686]
-#     '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
-#                         1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
-#                         8173033, 7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
-#                         8692923] '''
-#     subjects_as_strings = []
-#
-#     for subject in train_subjects_as_ints:
-#         subjects_as_strings.append(str(subject))
-#     return subjects_as_strings
-
 def get_all_train_subject_ids():
-    train_subjects_as_ints = [1066528]
+    train_subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348, 1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783]
     '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
                         1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
                         8173033, 7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
@@ -63,7 +51,7 @@ def get_all_train_subject_ids():
     return train_subjects_as_strings
 
 def get_all_test_subject_ids():
-    test_subjects_as_ints = [1360686]
+    test_subjects_as_ints = [6220552, 844359, 9618981, 1360686, 46343, 8692923]
     '''subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
                         1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
                         8173033, 7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
@@ -182,49 +170,59 @@ def load_label(subject_id):
     label_psg = psg[1].values
     return label_psg
 
-def load_normalize_signal(subject_id, label):
+def load_normalize_signal(subject_id):
     # Load label from heart rate csv
     hr_output_path = Path_to_clearned_file + subject_id + '_cleaned_heartrate.csv'
-    counts_output_path = Path_to_clearned_file + subject_id + '_cleaned_counts.txt'
+    # counts_output_path = Path_to_clearned_file + subject_id + '_cleaned_counts.txt'
     motion_output_path = Path_to_clearned_file + subject_id + '_cleaned_motion.csv'
     hr = pd.read_csv(hr_output_path, header=None)
-    counts = pd.read_csv(counts_output_path, header=None)
+    # counts = pd.read_csv(counts_output_path, header=None)
     motion = pd.read_csv(motion_output_path, header=None)
     signal_hr = hr[1].values
-    signal_counts = counts[1].values
+    # signal_counts = counts[1].values
     signal_motion_x = motion[1].values
     signal_motion_y = motion[2].values
     signal_motion_z = motion[3].values
+    label = load_label(subject_id)
     if len(signal_hr) > len(label):
         hr_multiple = len(signal_hr) / len(label)
-        counts_multiple = len(signal_counts) / len(label)
+    # if len(signal_counts) > len(label):
+    #     counts_multiple = len(signal_counts) / len(label)
+    # else:
+    #     counts_multiple = len(label) / len(signal_counts)
+    if len(signal_motion_x) > len(label):
         motion_multiple = len(signal_motion_x) / len(label)
-        normalized_signal = [];
-        for index in range(0, len(label)) :
-            signals_arr = [];
-            signals_arr.append(signal_hr[int(index * hr_multiple)])
-            signals_arr.append(signal_counts[int(index * counts_multiple)])
-            signals_arr.append(signal_motion_x[int(index * motion_multiple)])
-            signals_arr.append(signal_motion_y[int(index * motion_multiple)])
-            signals_arr.append(signal_motion_z[int(index * motion_multiple)])
-            normalized_signal.append(signals_arr);
+    normalized_signal = [];
+    for index in range(0, len(label)) :
+        signals_arr = [];
+        signals_arr.append(signal_hr[int(index * hr_multiple)])
+        # signals_arr.append(signal_counts[int(index * counts_multiple)])
+        signals_arr.append(signal_motion_x[int(index * motion_multiple)])
+        signals_arr.append(signal_motion_y[int(index * motion_multiple)])
+        signals_arr.append(signal_motion_z[int(index * motion_multiple)])
+        normalized_signal.append(signals_arr);
 
     return normalized_signal
 
 def run_modeling(train_subject_set, test_subject_set):
     start_time = time.time()
-
+    train_label, train_signal = [], []
     for train_subject in train_subject_set:
         print("Load cleaned training data from subject " + str(train_subject) + "...")
-        # load_data(str(train_subject))
-        train_label = load_label(str(train_subject))
-        train_signal = load_normalize_signal(str(train_subject), train_label)
+        train_label = np.hstack((train_label, load_label(str(train_subject))))
+        if len(train_signal) == 0:
+            train_signal = load_normalize_signal(str(train_subject))
+        else:
+            train_signal = np.concatenate((train_signal, load_normalize_signal(str(train_subject))), axis=0)
 
+    test_label, test_signal = [], []
     for test_subject in test_subject_set:
         print("Load cleaned testing data from subject " + str(test_subject) + "...")
-        # load_data(str(test_subject))
-        test_label = load_label(str(test_subject))
-        test_signal = load_normalize_signal(str(train_subject), test_label)
+        test_label = np.hstack((test_label, load_label(str(test_subject))))
+        if len(test_signal) == 0:
+            test_signal = load_normalize_signal(str(test_subject))
+        else:
+            test_signal = np.concatenate((test_signal, load_normalize_signal(str(test_subject))), axis=0)
 
     # Extract features for both train and test signals
     start = time.time()
@@ -248,7 +246,7 @@ def run_modeling(train_subject_set, test_subject_set):
     test_score = clf.score(X_test, Y_test)
 
     print('Classification accuracy for test data set: %.4f' % test_score)
-    stage_label = ['WAKE', 'N1', 'N2', 'N3', 'N4', 'REM']
+    stage_label = ['INVALID', 'WAKE', 'N1', 'N2', 'N3', 'N4', 'REM']
 
     Y_predict = clf.predict(X_test)
     print(pd.DataFrame(confusion_matrix(Y_test, Y_predict), index=stage_label, columns=stage_label))
