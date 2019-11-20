@@ -51,8 +51,11 @@ def get_all_train_subject_ids():
 
 def get_all_test_subject_ids():
     # test_subjects_as_ints = [6220552, 844359, 9618981, 1360686, 46343, 8692923]
-    test_subjects_as_ints = [7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
-                        8692923]
+    # test_subjects_as_ints = [7749105, 5797046, 759667, 8000685, 6220552, 844359, 9618981, 1360686, 46343,
+    #                     8692923]
+    test_subjects_as_ints = [3509524, 5132496, 1066528, 5498603, 2638030, 2598705, 5383425, 1455390, 4018081, 9961348,
+     1449548, 8258170, 781756, 9106476, 8686948, 8530312, 3997827, 4314139, 1818471, 4426783,
+     8173033, 7749105]
     test_subjects_as_strings = []
 
     for subject in test_subjects_as_ints:
@@ -167,44 +170,78 @@ def load_label(subject_id):
     label_psg = psg[1].values
     return label_psg
 
+def find_hr_motion_index(label_index, label_seq, hr_seq, timing_motion_seq, previous_hr_index, previous_motion_index):
+    hr_index = previous_hr_index
+    motion_index = previous_motion_index
+    for i in range(previous_hr_index, len(hr_seq)-1):
+        if (abs(label_seq[label_index] - hr_seq[i]) < abs(label_seq[label_index] - hr_seq[i+1])):
+            #             # find hr index for the min time gap
+            hr_index=i;
+            break
+    for j in range(previous_motion_index, len(timing_motion_seq)-1):
+        if (abs(label_seq[label_index] - timing_motion_seq[j]) < abs(label_seq[label_index] - timing_motion_seq[j+1])):
+            # find motion index for the min time gap
+            motion_index=j;
+            break
+    return hr_index, motion_index
+
 def load_normalize_signal(subject_id):
     # Load label from heart rate csv
     hr_output_path = Path_to_clearned_file + subject_id + '_cleaned_heartrate.csv'
     # counts_output_path = Path_to_clearned_file + subject_id + '_cleaned_counts.txt'
     motion_output_path = Path_to_clearned_file + subject_id + '_cleaned_motion.csv'
+    psg_output_path = Path_to_clearned_file + subject_id + '_cleaned_psg.csv'
     hr = pd.read_csv(hr_output_path, header=None)
     # counts = pd.read_csv(counts_output_path, header=None)
     motion = pd.read_csv(motion_output_path, header=None)
+    label = pd.read_csv(psg_output_path, header=None)
+    timing_label = label[0].values
+    signal_label = label[1].values
+    timing_hr = hr[0].values
     signal_hr = hr[1].values
     # signal_counts = counts[1].values
+    timing_motion = motion[0].values
     signal_motion_x = motion[1].values
     signal_motion_y = motion[2].values
     signal_motion_z = motion[3].values
-    label = load_label(subject_id)
-    # if len(signal_hr) > len(label):
-    hr_multiple = len(signal_hr) / len(label)
-    # if len(signal_counts) > len(label):
-    #     counts_multiple = len(signal_counts) / len(label)
-    # else:
-    #     counts_multiple = len(label) / len(signal_counts)
-    if len(signal_motion_x) > len(label):
-        motion_multiple = len(signal_motion_x) / len(label)
+
     normalized_signal = [];
-    for index in range(0, len(label)) :
-        signals_arr = [];
-        signals_arr.append(signal_hr[int(index * hr_multiple)])
+    previous_hr_index = 0
+    previous_motion_index = 0
+
+    # Match the hr and motion index for label
+    for i in range(0, len(signal_label)):
+        hr_index, motion_index =  find_hr_motion_index(i, timing_label, timing_hr, timing_motion, previous_hr_index, previous_motion_index)
+        signals_arr = []
+        signals_arr.append(signal_hr[int(hr_index)])
         # signals_arr.append(signal_counts[int(index * counts_multiple)])
-        signals_arr.append(signal_motion_x[int(index * motion_multiple)])
-        signals_arr.append(signal_motion_y[int(index * motion_multiple)])
-        signals_arr.append(signal_motion_z[int(index * motion_multiple)])
+        signals_arr.append(signal_motion_x[int(motion_index)])
+        signals_arr.append(signal_motion_y[int(motion_index)])
+        signals_arr.append(signal_motion_z[int(motion_index)])
         normalized_signal.append(signals_arr);
 
     return normalized_signal
 
+    # label = load_label(subject_id)
+    # hr_multiple = len(signal_hr) / len(signal_label)
+    # if len(signal_motion_x) > len(signal_label):
+    #     motion_multiple = len(signal_motion_x) / len(signal_label)
+    # normalized_signal = [];
+    # for index in range(0, len(signal_label)) :
+    #     signals_arr = [];
+    #     signals_arr.append(signal_hr[int(index * hr_multiple)])
+    #     # signals_arr.append(signal_counts[int(index * counts_multiple)])
+    #     signals_arr.append(signal_motion_x[int(index * motion_multiple)])
+    #     signals_arr.append(signal_motion_y[int(index * motion_multiple)])
+    #     signals_arr.append(signal_motion_z[int(index * motion_multiple)])
+    #     normalized_signal.append(signals_arr);
+    #
+    # return normalized_signal
+
 def randomize(dataset, labels):
     permutation = np.random.permutation(labels.shape[0])
     print(permutation)
-    shuffled_dataset = dataset[permutation, :, :]
+    shuffled_dataset = dataset[permutation]
     shuffled_labels = labels[permutation]
     return shuffled_dataset, shuffled_labels
 
@@ -228,17 +265,18 @@ def run_modeling(train_subject_set, test_subject_set):
         else:
             test_signal = np.concatenate((test_signal, load_normalize_signal(str(test_subject))), axis=0)
 
-    sleeping_signals_train, sleeping_labels_train = randomize(train_signal, np.array(train_label))
-    sleeping_signals_test, sleeping_labels_test = randomize(test_signal, np.array(test_label))
+    # sleeping_signals_train, sleeping_labels_train = randomize(train_signal, np.array(train_label))
+    # sleeping_signals_test, sleeping_labels_test = randomize(test_signal, np.array(test_label))
 
     # Extract features for both train and test signals
     start = time.time()
 
     waveletname = 'db38'
     print('Generate features for training data')
-    X_train, Y_train = get_sleeping_features(sleeping_signals_train, np.array(sleeping_labels_train), waveletname)
+    X_train, Y_train = get_sleeping_features(train_signal, np.array(train_label), waveletname)
+
     print('Generate features for testing data')
-    X_test, Y_test = get_sleeping_features(sleeping_signals_test, np.array(sleeping_labels_test), waveletname)
+    X_test, Y_test = get_sleeping_features(test_signal, np.array(test_label), waveletname)
 
     end = time.time()
     print('Time needed: %.2f seconds' % (end - start))
@@ -256,6 +294,9 @@ def run_modeling(train_subject_set, test_subject_set):
     stage_label = ['NA', 'WAKE', 'N1', 'N2', 'N3', 'N4', 'REM']
 
     Y_predict = clf.predict(X_test)
+    print(Y_predict)
+    print()
+    print(Y_test)
     print(pd.DataFrame(confusion_matrix(Y_test, Y_predict), index=stage_label, columns=stage_label))
 
 # Start to run here
